@@ -17,6 +17,7 @@ $user_id = $_SESSION['user_id'];
 
 
 /* Teacher information */
+
 $user_query = mysqli_query($conn, "
     SELECT * FROM users
     WHERE id='$user_id'
@@ -24,14 +25,19 @@ $user_query = mysqli_query($conn, "
 
 $teacher = mysqli_fetch_assoc($user_query);
 
+if(!$teacher){
+    die("Teacher profile not found.");
+}
+
 
 /* Assigned complaints */
+
 $query = mysqli_query($conn, "
     SELECT complaints.*, users.fullname
     FROM complaints
     INNER JOIN users
     ON complaints.user_id = users.id
-    WHERE complaints.assigned_to='teacher'
+    WHERE complaints.assigned_to='$user_id'
     ORDER BY complaints.id DESC
 ");
 
@@ -42,8 +48,9 @@ $total_complaints = mysqli_num_rows($query);
 
 
 $pending_query = mysqli_query($conn, "
-    SELECT id FROM complaints
-    WHERE assigned_to='teacher'
+    SELECT id
+    FROM complaints
+    WHERE assigned_to='$user_id'
     AND status='Pending'
 ");
 
@@ -51,8 +58,9 @@ $pending = mysqli_num_rows($pending_query);
 
 
 $progress_query = mysqli_query($conn, "
-    SELECT id FROM complaints
-    WHERE assigned_to='teacher'
+    SELECT id
+    FROM complaints
+    WHERE assigned_to='$user_id'
     AND status='In Progress'
 ");
 
@@ -60,8 +68,9 @@ $in_progress = mysqli_num_rows($progress_query);
 
 
 $resolved_query = mysqli_query($conn, "
-    SELECT id FROM complaints
-    WHERE assigned_to='teacher'
+    SELECT id
+    FROM complaints
+    WHERE assigned_to='$user_id'
     AND status='Resolved'
 ");
 
@@ -115,7 +124,6 @@ body{
     color:#60a5fa;
 }
 
-
 .profile{
     text-align:center;
     margin-bottom:30px;
@@ -145,7 +153,6 @@ body{
     margin-top:4px;
 }
 
-
 .nav a{
     display:block;
     color:#e2e8f0;
@@ -166,7 +173,6 @@ body{
     background:#2563eb;
     color:white;
 }
-
 
 .logout{
     margin-top:25px;
@@ -284,7 +290,7 @@ body{
 }
 
 
-/* Teacher info */
+/* Teacher Info */
 
 .info-grid{
     display:grid;
@@ -333,6 +339,7 @@ td{
     padding:12px;
     border-bottom:1px solid #e2e8f0;
     font-size:13px;
+    vertical-align:top;
 }
 
 
@@ -497,43 +504,33 @@ input[type="text"]:focus{
 
     <div class="nav">
 
-
         <a href="dashboard.php" class="active">
             🏠 Dashboard
         </a>
-
 
         <a href="../department/sos_requests.php">
             🚨 SOS Requests
         </a>
 
-
         <a href="../department/notices.php">
             📢 Notice Board
         </a>
-
 
         <a href="../department/lost_found.php">
             📦 Lost & Found
         </a>
 
-
         <a href="../department/feedback.php">
             💬 Student Feedback
         </a>
-
-
-        <!-- NEW PROFILE LINK -->
 
         <a href="profile.php">
             👤 My Profile
         </a>
 
-
         <a href="../logout.php" class="logout">
             🚪 Logout
         </a>
-
 
     </div>
 
@@ -583,9 +580,8 @@ input[type="text"]:focus{
 
         </h2>
 
-
         <p>
-            Manage assigned student complaints and update their status.
+            Manage complaints assigned to you by the HOD.
         </p>
 
     </div>
@@ -676,7 +672,6 @@ input[type="text"]:focus{
 
     <div class="section">
 
-
         <div class="section-header">
 
             <h2>
@@ -684,7 +679,6 @@ input[type="text"]:focus{
             </h2>
 
         </div>
-
 
 
         <div class="info-grid">
@@ -703,7 +697,6 @@ input[type="text"]:focus{
             </div>
 
 
-
             <div class="info-box">
 
                 <span>
@@ -715,7 +708,6 @@ input[type="text"]:focus{
                 </strong>
 
             </div>
-
 
 
             <div class="info-box">
@@ -737,10 +729,9 @@ input[type="text"]:focus{
 
 
 
-    <!-- COMPLAINTS -->
+    <!-- ASSIGNED COMPLAINTS -->
 
     <div class="section">
-
 
         <div class="section-header">
 
@@ -749,7 +740,6 @@ input[type="text"]:focus{
             </h2>
 
         </div>
-
 
 
         <div class="table-container">
@@ -777,7 +767,6 @@ input[type="text"]:focus{
                 </tr>
 
 
-
                 <?php
 
                 if(mysqli_num_rows($query) > 0){
@@ -785,7 +774,6 @@ input[type="text"]:focus{
                     while($row = mysqli_fetch_assoc($query)){
 
                 ?>
-
 
 
                 <tr>
@@ -796,11 +784,9 @@ input[type="text"]:focus{
                     </td>
 
 
-
                     <td>
                         <?php echo htmlspecialchars($row['fullname']); ?>
                     </td>
-
 
 
                     <td>
@@ -808,11 +794,9 @@ input[type="text"]:focus{
                     </td>
 
 
-
                     <td>
                         <?php echo htmlspecialchars($row['category']); ?>
                     </td>
-
 
 
                     <td>
@@ -858,7 +842,6 @@ input[type="text"]:focus{
                     </td>
 
 
-
                     <td>
 
 
@@ -881,7 +864,6 @@ input[type="text"]:focus{
                                 required
                             >
 
-
                                 <option
                                     value="Pending"
 
@@ -895,7 +877,6 @@ input[type="text"]:focus{
                                 >
                                     Pending
                                 </option>
-
 
 
                                 <option
@@ -913,7 +894,6 @@ input[type="text"]:focus{
                                 </option>
 
 
-
                                 <option
                                     value="Resolved"
 
@@ -928,16 +908,13 @@ input[type="text"]:focus{
                                     Resolved
                                 </option>
 
-
                             </select>
-
 
 
                             <input
                                 type="text"
                                 name="remarks"
                                 placeholder="Enter Remarks"
-
                                 value="<?php
 
                                 echo htmlspecialchars(
@@ -946,7 +923,6 @@ input[type="text"]:focus{
 
                                 ?>"
                             >
-
 
 
                             <button
@@ -962,7 +938,6 @@ input[type="text"]:focus{
 
 
                     </td>
-
 
 
                     <td>

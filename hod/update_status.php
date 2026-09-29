@@ -8,7 +8,7 @@ if(!isset($_SESSION['user_id'])){
     exit();
 }
 
-if($_SESSION['role']!="hod"){
+if($_SESSION['role'] != "hod"){
     header("Location: ../login.php");
     exit();
 }
@@ -19,10 +19,31 @@ if(isset($_POST['update'])){
     $status = $_POST['status'];
     $remarks = $_POST['remarks'];
 
-    $sql = "UPDATE complaints
-            SET status='$status',
-                remarks='$remarks'
-            WHERE id='$id'";
+    $user_id = $_SESSION['user_id'];
+
+    /* Get HOD Department */
+
+    $hod_query = mysqli_query($conn, "
+        SELECT department
+        FROM users
+        WHERE id='$user_id'
+    ");
+
+    $hod = mysqli_fetch_assoc($hod_query);
+
+    $department = $hod['department'];
+
+
+    /* Update only complaint from HOD's department */
+
+    $sql = "UPDATE complaints c
+            INNER JOIN users u
+            ON c.user_id = u.id
+            SET c.status='$status',
+                c.remarks='$remarks'
+            WHERE c.id='$id'
+            AND u.department='$department'";
+
 
     if(mysqli_query($conn,$sql)){
 
@@ -35,6 +56,7 @@ if(isset($_POST['update'])){
 
         echo "<script>
         alert('Update Failed');
+        window.location='dashboard.php';
         </script>";
 
     }

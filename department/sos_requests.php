@@ -10,62 +10,52 @@ if(!isset($_SESSION['user_id'])){
 
 $role = $_SESSION['role'];
 
-/* Student is not allowed here */
-if($role == "student"){
+/* Student and Admin are not allowed here */
+if($role == "student" || $role == "admin"){
     header("Location: ../login.php");
     exit();
 }
 
 
 /* User information */
+
 $user_id = $_SESSION['user_id'];
 
 $user_query = mysqli_query($conn, "
-    SELECT * FROM users
+    SELECT *
+    FROM users
     WHERE id='$user_id'
 ");
 
 $user = mysqli_fetch_assoc($user_query);
 
 
-/* SOS Requests */
+/* Notices */
+/*
+   Show only Active notices
+   which are either for All users
+   or specifically for the logged-in user's role.
+*/
+
 $query = mysqli_query($conn, "
-    SELECT sos_requests.*, users.fullname
-    FROM sos_requests
-    INNER JOIN users
-    ON sos_requests.user_id = users.id
-    ORDER BY sos_requests.id DESC
+    SELECT *
+    FROM notices
+    WHERE status='Active'
+    AND (
+        target_role='All'
+        OR target_role='$role'
+    )
+    ORDER BY id DESC
 ");
 
 
-/* Count SOS */
-$total_sos = mysqli_num_rows($query);
+/* Total notices */
 
-$pending_query = mysqli_query($conn, "
-    SELECT id FROM sos_requests
-    WHERE status='Pending'
-");
-
-$pending_sos = mysqli_num_rows($pending_query);
-
-
-$accepted_query = mysqli_query($conn, "
-    SELECT id FROM sos_requests
-    WHERE status='Accepted'
-");
-
-$accepted_sos = mysqli_num_rows($accepted_query);
-
-
-$resolved_query = mysqli_query($conn, "
-    SELECT id FROM sos_requests
-    WHERE status='Resolved'
-");
-
-$resolved_sos = mysqli_num_rows($resolved_query);
+$total_notices = mysqli_num_rows($query);
 
 
 /* Dashboard link */
+
 $back = "";
 
 switch($role){
@@ -90,10 +80,6 @@ switch($role){
         $back = "../security/dashboard.php";
         break;
 
-    case "admin":
-        $back = "../admin/dashboard.php";
-        break;
-
     default:
         $back = "../login.php";
         break;
@@ -106,7 +92,7 @@ switch($role){
 
 <head>
 
-<title>SOS Requests - Campus Care</title>
+<title>Notice Board - Campus Care</title>
 
 <style>
 
@@ -193,12 +179,10 @@ body{
     color:white;
 }
 
-
 .nav .active{
     background:#2563eb;
     color:white;
 }
-
 
 .logout{
     margin-top:25px;
@@ -240,7 +224,7 @@ body{
 /* WELCOME */
 
 .welcome{
-    background:#dc2626;
+    background:#2563eb;
     color:white;
     padding:25px;
     border-radius:14px;
@@ -254,24 +238,19 @@ body{
 
 .welcome p{
     font-size:14px;
-    color:#fee2e2;
+    color:#dbeafe;
 }
 
 
-/* STATS */
-
-.stats{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:15px;
-    margin-bottom:20px;
-}
+/* STAT */
 
 .stat-card{
     background:white;
     padding:20px;
     border-radius:12px;
     box-shadow:0 2px 8px rgba(0,0,0,0.05);
+    width:250px;
+    margin-bottom:20px;
 }
 
 .stat-icon{
@@ -312,107 +291,80 @@ body{
 }
 
 
-/* TABLE */
+/* NOTICE CARDS */
 
-.table-container{
-    overflow-x:auto;
+.notice-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:18px;
 }
 
-table{
-    width:100%;
-    border-collapse:collapse;
-    min-width:950px;
+.notice-card{
+    border:1px solid #e2e8f0;
+    border-radius:10px;
+    padding:18px;
+    background:#f8fafc;
+    transition:0.2s;
 }
 
-th{
-    background:#f1f5f9;
-    text-align:left;
-    padding:12px;
+.notice-card:hover{
+    box-shadow:0 4px 12px rgba(0,0,0,0.08);
+    transform:translateY(-2px);
+}
+
+.notice-icon{
+    font-size:25px;
+    margin-bottom:10px;
+}
+
+.notice-card h3{
+    font-size:17px;
+    margin-bottom:8px;
+    color:#172554;
+}
+
+.notice-description{
     font-size:13px;
+    color:#475569;
+    line-height:1.6;
+    margin-bottom:12px;
 }
 
-td{
-    padding:12px;
-    border-bottom:1px solid #e2e8f0;
-    font-size:13px;
-    vertical-align:top;
-}
-
-
-/* STATUS */
-
-.status{
-    display:inline-block;
-    padding:5px 10px;
-    border-radius:20px;
+.notice-date{
     font-size:11px;
-    font-weight:bold;
+    color:#64748b;
 }
 
-.pending{
-    background:#fef3c7;
-    color:#92400e;
-}
 
-.accepted{
+/* TARGET */
+
+.notice-target{
+    display:inline-block;
+    margin-top:10px;
+    padding:5px 9px;
     background:#dbeafe;
     color:#1d4ed8;
-}
-
-.resolved{
-    background:#dcfce7;
-    color:#166534;
-}
-
-
-/* UPDATE FORM */
-
-.update-form{
-    display:flex;
-    flex-direction:column;
-    gap:7px;
-    min-width:150px;
-}
-
-select,
-input[type="text"]{
-    padding:8px;
-    border:1px solid #cbd5e1;
-    border-radius:6px;
-    font-size:12px;
-    width:100%;
-}
-
-.update-btn{
-    background:#2563eb;
-    color:white;
-    border:none;
-    padding:8px;
-    border-radius:6px;
-    cursor:pointer;
-    font-size:12px;
-}
-
-.update-btn:hover{
-    background:#1d4ed8;
-}
-
-
-/* LOCATION */
-
-.location{
+    border-radius:15px;
+    font-size:10px;
     font-weight:bold;
-    color:#334155;
-}
-
-.message{
-    max-width:250px;
-    line-height:1.5;
-    color:#475569;
 }
 
 
-/* BUTTON */
+/* EMPTY */
+
+.empty{
+    text-align:center;
+    padding:45px 20px;
+    color:#64748b;
+}
+
+.empty-icon{
+    font-size:40px;
+    margin-bottom:10px;
+}
+
+
+/* BACK BUTTON */
 
 .back-btn{
     display:inline-block;
@@ -451,8 +403,8 @@ input[type="text"]{
         margin-left:200px;
     }
 
-    .stats{
-        grid-template-columns:repeat(2,1fr);
+    .notice-grid{
+        grid-template-columns:1fr;
     }
 
 }
@@ -470,14 +422,14 @@ input[type="text"]{
         padding:15px;
     }
 
-    .stats{
-        grid-template-columns:1fr;
-    }
-
     .topbar{
         flex-direction:column;
         align-items:flex-start;
         gap:5px;
+    }
+
+    .stat-card{
+        width:100%;
     }
 
 }
@@ -504,25 +456,37 @@ input[type="text"]{
         <div class="profile-circle">
 
             <?php
+
             echo strtoupper(
                 substr($user['fullname'],0,1)
             );
+
             ?>
 
         </div>
 
 
         <h3>
+
             <?php
-            echo htmlspecialchars($user['fullname']);
+
+            echo htmlspecialchars(
+                $user['fullname']
+            );
+
             ?>
+
         </h3>
 
 
         <p>
+
             <?php
+
             echo ucfirst($role);
+
             ?>
+
         </p>
 
     </div>
@@ -537,11 +501,11 @@ input[type="text"]{
 
         <?php if($role == "teacher"){ ?>
 
-            <a href="sos_requests.php" class="active">
+            <a href="sos_requests.php">
                 🚨 SOS Requests
             </a>
 
-            <a href="notices.php">
+            <a href="notices.php" class="active">
                 📢 Notice Board
             </a>
 
@@ -578,11 +542,11 @@ input[type="text"]{
         <div>
 
             <h2>
-                🚨 SOS Requests
+                📢 Notice Board
             </h2>
 
             <p>
-                Campus Care Emergency Management
+                Campus Care Notice Management
             </p>
 
         </div>
@@ -591,8 +555,11 @@ input[type="text"]{
         <div>
 
             👤
+
             <?php
+
             echo ucfirst($role);
+
             ?>
 
         </div>
@@ -606,422 +573,171 @@ input[type="text"]{
     <div class="welcome">
 
         <h2>
-            Emergency SOS Requests 🚨
+            Campus Notice Board 📢
         </h2>
 
         <p>
-            View and manage emergency requests submitted by students.
+            View important notices and announcements from the college.
         </p>
 
     </div>
 
 
 
-    <!-- STATS -->
+    <!-- STAT -->
 
-    <div class="stats">
+    <div class="stat-card">
 
-
-        <div class="stat-card">
-
-            <div class="stat-icon">
-                🚨
-            </div>
-
-            <h3>
-                <?php echo $total_sos; ?>
-            </h3>
-
-            <p>
-                Total SOS
-            </p>
-
+        <div class="stat-icon">
+            📢
         </div>
 
+        <h3>
 
-        <div class="stat-card">
+            <?php
 
-            <div class="stat-icon">
-                ⏳
-            </div>
+            echo $total_notices;
 
-            <h3>
-                <?php echo $pending_sos; ?>
-            </h3>
+            ?>
 
-            <p>
-                Pending
-            </p>
+        </h3>
 
-        </div>
-
-
-        <div class="stat-card">
-
-            <div class="stat-icon">
-                🔄
-            </div>
-
-            <h3>
-                <?php echo $accepted_sos; ?>
-            </h3>
-
-            <p>
-                Accepted
-            </p>
-
-        </div>
-
-
-        <div class="stat-card">
-
-            <div class="stat-icon">
-                ✅
-            </div>
-
-            <h3>
-                <?php echo $resolved_sos; ?>
-            </h3>
-
-            <p>
-                Resolved
-            </p>
-
-        </div>
+        <p>
+            Available Notices
+        </p>
 
     </div>
 
 
 
-    <!-- SOS TABLE -->
+    <!-- NOTICE SECTION -->
 
     <div class="section">
 
         <div class="section-header">
 
             <h2>
-                🚨 Emergency Requests
+                📢 Available Notices
             </h2>
 
         </div>
 
 
-        <div class="table-container">
+        <?php
 
-            <table>
+        if($total_notices > 0){
 
-                <tr>
+        ?>
 
-                    <th>ID</th>
+        <div class="notice-grid">
 
-                    <th>Student</th>
+            <?php
 
-                    <th>Location</th>
+            while($row = mysqli_fetch_assoc($query)){
 
-                    <th>Message</th>
+            ?>
 
-                    <th>Status</th>
+            <div class="notice-card">
 
-                    <?php
+                <div class="notice-icon">
+                    📢
+                </div>
 
-                    if(
-                        $role == "security" ||
-                        $role == "admin"
-                    ){
 
-                    ?>
-
-                    <th>Update</th>
+                <h3>
 
                     <?php
 
-                    }
+                    echo htmlspecialchars(
+                        $row['title']
+                    );
 
                     ?>
 
-                    <th>Date</th>
-
-                </tr>
+                </h3>
 
 
-                <?php
-
-                if(mysqli_num_rows($query) > 0){
-
-                    while($row = mysqli_fetch_assoc($query)){
-
-                ?>
-
-                <tr>
-
-
-                    <td>
-                        <?php
-                        echo $row['id'];
-                        ?>
-                    </td>
-
-
-                    <td>
-
-                        <strong>
-
-                            <?php
-                            echo htmlspecialchars(
-                                $row['fullname']
-                            );
-                            ?>
-
-                        </strong>
-
-                    </td>
-
-
-                    <td>
-
-                        <div class="location">
-
-                            📍
-                            <?php
-                            echo htmlspecialchars(
-                                $row['location']
-                            );
-                            ?>
-
-                        </div>
-
-                    </td>
-
-
-                    <td>
-
-                        <div class="message">
-
-                            <?php
-                            echo htmlspecialchars(
-                                $row['message']
-                            );
-                            ?>
-
-                        </div>
-
-                    </td>
-
+                <div class="notice-description">
 
                     <?php
 
-                    if(
-                        $role == "security" ||
-                        $role == "admin"
-                    ){
+                    echo nl2br(
+                        htmlspecialchars(
+                            $row['description']
+                        )
+                    );
 
                     ?>
 
-                    <td>
-
-                        <form
-                            action="../admin/update_sos.php"
-                            method="POST"
-                            class="update-form"
-                        >
-
-                            <input
-                                type="hidden"
-                                name="id"
-                                value="<?php
-                                echo $row['id'];
-                                ?>"
-                            >
+                </div>
 
 
-                            <select name="status" required>
+                <div class="notice-date">
 
-                                <option
-                                    value="Pending"
-                                    <?php
-                                    if(
-                                        $row['status']
-                                        == "Pending"
-                                    )
-                                        echo "selected";
-                                    ?>
-                                >
-                                    Pending
-                                </option>
-
-
-                                <option
-                                    value="Accepted"
-                                    <?php
-                                    if(
-                                        $row['status']
-                                        == "Accepted"
-                                    )
-                                        echo "selected";
-                                    ?>
-                                >
-                                    Accepted
-                                </option>
-
-
-                                <option
-                                    value="Resolved"
-                                    <?php
-                                    if(
-                                        $row['status']
-                                        == "Resolved"
-                                    )
-                                        echo "selected";
-                                    ?>
-                                >
-                                    Resolved
-                                </option>
-
-                            </select>
-
-
-                            <input
-                                type="text"
-                                name="remarks"
-                                placeholder="Enter Remarks"
-                                value="<?php
-                                echo htmlspecialchars(
-                                    $row['remarks'] ?? ''
-                                );
-                                ?>"
-                            >
-
-
-                            <button
-                                type="submit"
-                                name="update"
-                                class="update-btn"
-                            >
-                                Update
-                            </button>
-
-                        </form>
-
-                    </td>
-
+                    🕒 Published:
 
                     <?php
 
-                    }else{
+                    echo htmlspecialchars(
+                        $row['created_at']
+                    );
 
                     ?>
 
-                    <td>
+                </div>
 
-                        <?php
 
-                        if($row['status']=="Pending"){
+                <div class="notice-target">
 
-                            echo '<span class="status pending">
-                            Pending
-                            </span>';
-
-                        }elseif(
-                            $row['status']=="Accepted"
-                        ){
-
-                            echo '<span class="status accepted">
-                            Accepted
-                            </span>';
-
-                        }elseif(
-                            $row['status']=="Resolved"
-                        ){
-
-                            echo '<span class="status resolved">
-                            Resolved
-                            </span>';
-
-                        }else{
-
-                            echo '<span class="status pending">'
-                            .htmlspecialchars(
-                                $row['status']
-                            ).
-                            '</span>';
-
-                        }
-
-                        ?>
-
-                        <br><br>
-
-                        <small>
-
-                            <?php
-                            echo htmlspecialchars(
-                                $row['remarks'] ?? ''
-                            );
-                            ?>
-
-                        </small>
-
-                    </td>
-
+                    👥
                     <?php
 
-                    }
+                    echo htmlspecialchars(
+                        $row['target_role']
+                    );
 
                     ?>
 
+                </div>
 
-                    <td>
+            </div>
 
-                        <?php
-                        echo $row['created_at'];
-                        ?>
+            <?php
 
-                    </td>
+            }
 
-
-                </tr>
-
-
-                <?php
-
-                    }
-
-                }else{
-
-                ?>
-
-
-                <tr>
-
-                    <td
-                        colspan="<?php
-                        echo (
-                            $role=="security"
-                            || $role=="admin"
-                        ) ? 7 : 6;
-                        ?>"
-                        style="
-                        text-align:center;
-                        padding:35px;
-                        "
-                    >
-
-                        🚨 No SOS requests found.
-
-                    </td>
-
-                </tr>
-
-
-                <?php
-
-                }
-
-                ?>
-
-            </table>
+            ?>
 
         </div>
+
+
+        <?php
+
+        }else{
+
+        ?>
+
+        <div class="empty">
+
+            <div class="empty-icon">
+                📢
+            </div>
+
+            <h3>
+                No Notices Available
+            </h3>
+
+            <p>
+                There are currently no notices for your account.
+            </p>
+
+        </div>
+
+        <?php
+
+        }
+
+        ?>
 
     </div>
 
@@ -1047,7 +763,9 @@ input[type="text"]{
     <div class="footer">
 
         © <?php echo date("Y"); ?>
+
         Campus Care |
+
         Smart Campus Management System
 
     </div>

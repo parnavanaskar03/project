@@ -13,9 +13,14 @@ $user_id = $_SESSION['user_id'];
 
 $query = mysqli_query(
     $conn,
-    "SELECT * FROM complaints
-     WHERE user_id='$user_id'
-     ORDER BY id DESC"
+    "SELECT complaints.*, 
+            users.fullname AS teacher_name
+     FROM complaints
+     LEFT JOIN users
+     ON complaints.assigned_to = users.id
+     AND users.role = 'teacher'
+     WHERE complaints.user_id='$user_id'
+     ORDER BY complaints.id DESC"
 );
 
 ?>
@@ -91,16 +96,24 @@ $query = mysqli_query(
                         $status = strtolower(trim($row['status']));
 
                         if ($status == "pending") {
+
                             $status_class = "status-pending";
+
                         } elseif (
                             $status == "in progress" ||
                             $status == "in_progress"
                         ) {
+
                             $status_class = "status-progress";
+
                         } elseif ($status == "resolved") {
+
                             $status_class = "status-resolved";
+
                         } else {
+
                             $status_class = "status-default";
+
                         }
 
                 ?>
@@ -145,9 +158,15 @@ $query = mysqli_query(
 
                         <?php
 
-                        echo !empty($row['assigned_to'])
-                            ? htmlspecialchars($row['assigned_to'])
-                            : "Not Assigned";
+                        if (!empty($row['teacher_name'])) {
+
+                            echo htmlspecialchars($row['teacher_name']);
+
+                        } else {
+
+                            echo "Not Assigned";
+
+                        }
 
                         ?>
 

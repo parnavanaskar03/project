@@ -11,7 +11,8 @@ if(!isset($_SESSION['user_id'])){
 $user_id = $_SESSION['user_id'];
 
 $query = mysqli_query($conn, "
-    SELECT * FROM sos_requests
+    SELECT *
+    FROM sos_requests
     WHERE user_id='$user_id'
     ORDER BY id DESC
 ");
@@ -95,20 +96,36 @@ $query = mysqli_query($conn, "
 
                 $status = strtolower(trim($row['status']));
 
+                /*
+                 * Status Design
+                 */
+
                 if($status == "pending"){
+
                     $status_class = "sos-pending";
+
                 }
-                elseif($status == "resolved" || $status == "completed"){
-                    $status_class = "sos-resolved";
-                }
-                elseif($status == "in progress"){
+                elseif($status == "accepted"){
+
                     $status_class = "sos-progress";
+
+                }
+                elseif(
+                    $status == "resolved" ||
+                    $status == "completed"
+                ){
+
+                    $status_class = "sos-resolved";
+
                 }
                 else{
+
                     $status_class = "sos-other";
+
                 }
 
             ?>
+
 
             <div class="sos-card">
 
@@ -119,7 +136,11 @@ $query = mysqli_query($conn, "
                     <div>
 
                         <span class="sos-request-id">
-                            SOS Request #<?php echo $row['id']; ?>
+
+                            SOS Request #<?php
+                            echo htmlspecialchars($row['id']);
+                            ?>
+
                         </span>
 
                         <h2>
@@ -129,9 +150,17 @@ $query = mysqli_query($conn, "
                     </div>
 
 
+                    <!-- STATUS -->
+
                     <span class="sos-status-badge <?php echo $status_class; ?>">
 
-                        <?php echo htmlspecialchars($row['status']); ?>
+                        <?php
+
+                        echo !empty($row['status'])
+                            ? htmlspecialchars($row['status'])
+                            : "Pending";
+
+                        ?>
 
                     </span>
 
@@ -142,16 +171,31 @@ $query = mysqli_query($conn, "
 
                 <div class="sos-details">
 
+
+                    <!-- LOCATION -->
+
                     <div class="sos-detail-box">
 
-                        <span class="detail-icon">📍</span>
+                        <span class="detail-icon">
+                            📍
+                        </span>
 
                         <div>
 
-                            <small>Location</small>
+                            <small>
+                                Location
+                            </small>
 
                             <strong>
-                                <?php echo htmlspecialchars($row['location']); ?>
+
+                                <?php
+
+                                echo htmlspecialchars(
+                                    $row['location']
+                                );
+
+                                ?>
+
                             </strong>
 
                         </div>
@@ -159,21 +203,38 @@ $query = mysqli_query($conn, "
                     </div>
 
 
+                    <!-- DATE -->
+
                     <div class="sos-detail-box">
 
-                        <span class="detail-icon">📅</span>
+                        <span class="detail-icon">
+                            📅
+                        </span>
 
                         <div>
 
-                            <small>Submitted On</small>
+                            <small>
+                                Submitted On
+                            </small>
 
                             <strong>
-                                <?php echo htmlspecialchars($row['created_at']); ?>
+
+                                <?php
+
+                                echo !empty($row['created_at'])
+                                    ? htmlspecialchars(
+                                        $row['created_at']
+                                    )
+                                    : "—";
+
+                                ?>
+
                             </strong>
 
                         </div>
 
                     </div>
+
 
                 </div>
 
@@ -182,10 +243,22 @@ $query = mysqli_query($conn, "
 
                 <div class="sos-message">
 
-                    <strong>Emergency Message</strong>
+                    <strong>
+                        Emergency Message
+                    </strong>
 
                     <p>
-                        <?php echo nl2br(htmlspecialchars($row['message'])); ?>
+
+                        <?php
+
+                        echo nl2br(
+                            htmlspecialchars(
+                                $row['message']
+                            )
+                        );
+
+                        ?>
+
                     </p>
 
                 </div>
@@ -195,18 +268,33 @@ $query = mysqli_query($conn, "
 
                 <div class="sos-remarks">
 
-                    <strong>Admin / Staff Remarks</strong>
+                    <strong>
+                        Admin / Staff Remarks
+                    </strong>
+
 
                     <?php if(!empty($row['remarks'])){ ?>
 
                         <p>
-                            <?php echo nl2br(htmlspecialchars($row['remarks'])); ?>
+
+                            <?php
+
+                            echo nl2br(
+                                htmlspecialchars(
+                                    $row['remarks']
+                                )
+                            );
+
+                            ?>
+
                         </p>
 
                     <?php }else{ ?>
 
                         <p class="no-remarks">
+
                             No remarks have been added yet.
+
                         </p>
 
                     <?php } ?>
@@ -225,12 +313,24 @@ $query = mysqli_query($conn, "
                     </span>
 
                     <strong>
-                        <?php echo htmlspecialchars($row['status']); ?>
+
+                        <?php
+
+                        echo !empty($row['status'])
+                            ? htmlspecialchars(
+                                $row['status']
+                            )
+                            : "Pending";
+
+                        ?>
+
                     </strong>
 
                 </div>
 
+
             </div>
+
 
             <?php } ?>
 
@@ -248,7 +348,9 @@ $query = mysqli_query($conn, "
                 🆘
             </div>
 
-            <h2>No SOS Requests</h2>
+            <h2>
+                No SOS Requests
+            </h2>
 
             <p>
                 You have not submitted any emergency SOS request yet.
@@ -273,14 +375,20 @@ $query = mysqli_query($conn, "
         <div class="sos-bottom">
 
             <a href="../student_dashboard.php">
+
                 ← Back to Dashboard
+
             </a>
 
+
             <a href="sos.php">
+
                 🚨 Emergency SOS
+
             </a>
 
         </div>
+
 
     </div>
 

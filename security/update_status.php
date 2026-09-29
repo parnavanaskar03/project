@@ -8,36 +8,97 @@ if(!isset($_SESSION['user_id'])){
     exit();
 }
 
-if($_SESSION['role']!="security"){
+if($_SESSION['role'] != "security"){
     header("Location: ../login.php");
     exit();
 }
 
 if(isset($_POST['update'])){
 
-    $id = $_POST['id'];
-    $status = $_POST['status'];
-    $remarks = $_POST['remarks'];
+    $id = intval($_POST['id']);
+    $status = trim($_POST['status']);
+    $remarks = trim($_POST['remarks']);
 
-    $sql = "UPDATE complaints
-            SET status='$status',
-                remarks='$remarks'
-            WHERE id='$id'";
 
-    if(mysqli_query($conn,$sql)){
+    /* Allowed Status */
+
+    $allowed_status = array(
+        "Pending",
+        "In Progress",
+        "Resolved"
+    );
+
+
+    if(!in_array($status, $allowed_status)){
 
         echo "<script>
-        alert('Status & Remarks Updated Successfully');
+        alert('Invalid Status');
         window.location='dashboard.php';
         </script>";
+
+        exit();
+    }
+
+
+    /* Only update complaints assigned to Security */
+
+    $sql = "UPDATE complaints
+            SET status = ?,
+                remarks = ?
+            WHERE id = ?
+            AND assigned_to = 'security'";
+
+
+    $stmt = mysqli_prepare($conn, $sql);
+
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        "ssi",
+        $status,
+        $remarks,
+        $id
+    );
+
+
+    if(mysqli_stmt_execute($stmt)){
+
+        if(mysqli_stmt_affected_rows($stmt) > 0){
+
+            echo "<script>
+
+            alert('Status & Remarks Updated Successfully');
+
+            window.location='dashboard.php';
+
+            </script>";
+
+        }else{
+
+            echo "<script>
+
+            alert('Complaint not found or not assigned to Security.');
+
+            window.location='dashboard.php';
+
+            </script>";
+
+        }
 
     }else{
 
         echo "<script>
+
         alert('Update Failed');
+
+        window.location='dashboard.php';
+
         </script>";
 
     }
+
+
+    mysqli_stmt_close($stmt);
 
 }
 

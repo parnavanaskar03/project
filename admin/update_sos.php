@@ -3,7 +3,6 @@
 session_start();
 include("../config/db.php");
 
-
 /* Login Check */
 
 if(!isset($_SESSION['user_id'])){
@@ -30,9 +29,12 @@ if(isset($_POST['update'])){
     }
 
     $id = intval($_POST['id']);
-    $status = trim($_POST['status']);
-    $remarks = trim($_POST['remarks']);
 
+    $status = trim($_POST['status'] ?? '');
+    $remarks = trim($_POST['remarks'] ?? '');
+
+
+    /* Allowed Status */
 
     $allowed_status = array(
         "Pending",
@@ -52,13 +54,60 @@ if(isset($_POST['update'])){
     }
 
 
+    /* Check SOS exists */
+
+    $check_sql = "SELECT id
+                  FROM sos_requests
+                  WHERE id = ?";
+
+    $check_stmt = mysqli_prepare($conn, $check_sql);
+
+    mysqli_stmt_bind_param(
+        $check_stmt,
+        "i",
+        $id
+    );
+
+    mysqli_stmt_execute($check_stmt);
+
+    $check_result = mysqli_stmt_get_result($check_stmt);
+
+    if(mysqli_num_rows($check_result) == 0){
+
+        mysqli_stmt_close($check_stmt);
+
+        echo "<script>
+        alert('SOS Request Not Found');
+        window.location='sos_requests.php';
+        </script>";
+
+        exit();
+    }
+
+    mysqli_stmt_close($check_stmt);
+
+
+    /* Update SOS */
+
     $sql = "UPDATE sos_requests
-            SET status='$status',
-                remarks='$remarks'
-            WHERE id='$id'";
+            SET status = ?,
+                remarks = ?
+            WHERE id = ?";
+
+    $stmt = mysqli_prepare($conn, $sql);
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        "ssi",
+        $status,
+        $remarks,
+        $id
+    );
 
 
-    if(mysqli_query($conn,$sql)){
+    if(mysqli_stmt_execute($stmt)){
+
+        mysqli_stmt_close($stmt);
 
         echo "<script>
         alert('SOS Updated Successfully');
@@ -66,6 +115,8 @@ if(isset($_POST['update'])){
         </script>";
 
     }else{
+
+        mysqli_stmt_close($stmt);
 
         echo "<script>
         alert('Update Failed');

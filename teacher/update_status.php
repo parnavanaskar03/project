@@ -19,21 +19,25 @@ if(isset($_POST['update'])){
     $status = $_POST['status'];
     $remarks = $_POST['remarks'];
 
-    // Only update complaints assigned to teacher
+    // Logged-in teacher ID
+    $teacher_id = $_SESSION['user_id'];
+
+    // Only update complaints assigned to this teacher
     $sql = "UPDATE complaints
             SET status = ?,
                 remarks = ?
             WHERE id = ?
-            AND assigned_to = 'teacher'";
+            AND assigned_to = ?";
 
     $stmt = mysqli_prepare($conn, $sql);
 
     mysqli_stmt_bind_param(
         $stmt,
-        "ssi",
+        "ssii",
         $status,
         $remarks,
-        $id
+        $id,
+        $teacher_id
     );
 
     if(mysqli_stmt_execute($stmt)){
@@ -48,7 +52,7 @@ if(isset($_POST['update'])){
         }else{
 
             echo "<script>
-            alert('Complaint not found or not assigned to teacher.');
+            alert('Complaint not found or not assigned to you.');
             window.location='dashboard.php';
             </script>";
 

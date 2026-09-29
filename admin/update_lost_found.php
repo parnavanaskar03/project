@@ -20,28 +20,81 @@ if(!isset($_GET['id']) || !is_numeric($_GET['id'])){
 
 $id = intval($_GET['id']);
 
-$query = mysqli_query($conn,
-"SELECT * FROM lost_found WHERE id='$id'");
 
-$row = mysqli_fetch_assoc($query);
+/* Get item */
+
+$stmt = mysqli_prepare(
+    $conn,
+    "SELECT * FROM lost_found WHERE id = ?"
+);
+
+mysqli_stmt_bind_param(
+    $stmt,
+    "i",
+    $id
+);
+
+mysqli_stmt_execute($stmt);
+
+$result = mysqli_stmt_get_result($stmt);
+
+$row = mysqli_fetch_assoc($result);
+
+mysqli_stmt_close($stmt);
+
 
 if(!$row){
     header("Location: lost_found.php");
     exit();
 }
 
+
+/* Update status */
+
 if(isset($_POST['update'])){
 
-    $status = $_POST['status'];
+    $status = trim($_POST['status']);
 
-    $sql = "UPDATE lost_found
-            SET status='$status'
-            WHERE id='$id'";
+    $allowed_status = array(
+        "Lost",
+        "Found",
+        "Returned"
+    );
 
-    if(mysqli_query($conn,$sql)){
+    if(!in_array($status, $allowed_status)){
 
         echo "<script>
-        alert('Status Updated Successfully');
+        alert('Invalid Status');
+        window.location='lost_found.php';
+        </script>";
+
+        exit();
+    }
+
+
+    $sql = "UPDATE lost_found
+            SET status = ?
+            WHERE id = ?";
+
+    $stmt = mysqli_prepare(
+        $conn,
+        $sql
+    );
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        "si",
+        $status,
+        $id
+    );
+
+
+    if(mysqli_stmt_execute($stmt)){
+
+        mysqli_stmt_close($stmt);
+
+        echo "<script>
+        alert('Lost & Found Status Updated Successfully');
         window.location='lost_found.php';
         </script>";
 
@@ -49,24 +102,33 @@ if(isset($_POST['update'])){
 
     }else{
 
+        mysqli_stmt_close($stmt);
+
         echo "<script>
         alert('Update Failed');
+        window.location='lost_found.php';
         </script>";
 
+        exit();
     }
 }
 
 ?>
 
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Update Lost & Found - Campus Care</title>
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+Update Lost & Found - Campus Care
+</title>
 
 <style>
 
@@ -81,6 +143,7 @@ body{
     background:#f4f7fb;
     min-height:100vh;
 }
+
 
 /* TOP BAR */
 
@@ -100,6 +163,7 @@ body{
     margin-top:4px;
 }
 
+
 /* CONTAINER */
 
 .container{
@@ -107,6 +171,7 @@ body{
     margin:40px auto;
     padding:0 20px;
 }
+
 
 /* HEADER */
 
@@ -125,6 +190,7 @@ body{
     margin-top:7px;
 }
 
+
 /* CARD */
 
 .card{
@@ -133,6 +199,7 @@ body{
     padding:30px;
     box-shadow:0 8px 25px rgba(0,0,0,0.07);
 }
+
 
 /* ITEM */
 
@@ -169,6 +236,7 @@ body{
     margin-top:5px;
 }
 
+
 /* FORM */
 
 .form-group{
@@ -198,10 +266,17 @@ body{
     color:#64748b;
 }
 
+.form-group select{
+    background:white;
+    color:#334155;
+    cursor:pointer;
+}
+
 .form-group select:focus{
     border-color:#2563eb;
     box-shadow:0 0 0 3px rgba(37,99,235,.10);
 }
+
 
 /* INFO */
 
@@ -213,7 +288,9 @@ body{
     color:#475569;
     font-size:12px;
     margin-bottom:25px;
+    line-height:1.5;
 }
+
 
 /* BUTTONS */
 
@@ -256,6 +333,7 @@ body{
     background:#e2e8f0;
 }
 
+
 /* MOBILE */
 
 @media(max-width:600px){
@@ -282,6 +360,7 @@ body{
 
 </head>
 
+
 <body>
 
 
@@ -289,9 +368,13 @@ body{
 
 <div class="topbar">
 
-    <h2>Campus Care</h2>
+    <h2>
+        Campus Care
+    </h2>
 
-    <p>Admin Panel • Lost & Found Management</p>
+    <p>
+        Admin Panel • Lost & Found Management
+    </p>
 
 </div>
 
@@ -303,9 +386,13 @@ body{
 
     <div class="page-header">
 
-        <h1>Update Lost & Found</h1>
+        <h1>
+            Update Lost & Found
+        </h1>
 
-        <p>Change the current status of this reported item.</p>
+        <p>
+            Change the current status of this reported item.
+        </p>
 
     </div>
 
@@ -324,11 +411,31 @@ body{
             <div class="item-info">
 
                 <h3>
-                    <?php echo htmlspecialchars($row['item_name']); ?>
+
+                    <?php
+
+                    echo htmlspecialchars(
+                        $row['item_name']
+                    );
+
+                    ?>
+
                 </h3>
 
                 <p>
-                    Item ID: #<?php echo $row['id']; ?>
+
+                    Item ID:
+
+                    #
+
+                    <?php
+
+                    echo htmlspecialchars(
+                        $row['id']
+                    );
+
+                    ?>
+
                 </p>
 
             </div>
@@ -341,45 +448,72 @@ body{
         <form method="POST">
 
 
+            <!-- ITEM NAME -->
+
             <div class="form-group">
 
-                <label>Item Name</label>
+                <label>
+                    Item Name
+                </label>
 
                 <input
-                type="text"
-                value="<?php echo htmlspecialchars($row['item_name']); ?>"
-                readonly>
+                    type="text"
+                    value="<?php
+                    echo htmlspecialchars(
+                        $row['item_name']
+                    );
+                    ?>"
+                    readonly
+                >
 
             </div>
 
 
+            <!-- STATUS -->
+
             <div class="form-group">
 
-                <label>Current Status</label>
+                <label>
+                    Current Status
+                </label>
 
-                <select name="status" required>
+                <select
+                    name="status"
+                    required
+                >
 
-                    <option value="Lost"
-                    <?php
-                    if($row['status']=="Lost")
-                        echo "selected";
-                    ?>>
+                    <option
+                        value="Lost"
+                        <?php
+                        if($row['status']=="Lost"){
+                            echo "selected";
+                        }
+                        ?>
+                    >
                         Lost
                     </option>
 
-                    <option value="Found"
-                    <?php
-                    if($row['status']=="Found")
-                        echo "selected";
-                    ?>>
+
+                    <option
+                        value="Found"
+                        <?php
+                        if($row['status']=="Found"){
+                            echo "selected";
+                        }
+                        ?>
+                    >
                         Found
                     </option>
 
-                    <option value="Returned"
-                    <?php
-                    if($row['status']=="Returned")
-                        echo "selected";
-                    ?>>
+
+                    <option
+                        value="Returned"
+                        <?php
+                        if($row['status']=="Returned"){
+                            echo "selected";
+                        }
+                        ?>
+                    >
                         Returned
                     </option>
 
@@ -388,20 +522,25 @@ body{
             </div>
 
 
+            <!-- INFO -->
+
             <div class="info">
 
-                💡 Update the status when the item is found or returned
-                to the student.
+                💡 Update the status when the item is found
+                or returned to the student.
 
             </div>
 
 
+            <!-- BUTTONS -->
+
             <div class="buttons">
 
                 <button
-                type="submit"
-                name="update"
-                class="update-btn">
+                    type="submit"
+                    name="update"
+                    class="update-btn"
+                >
 
                     ✓ Update Status
 
@@ -409,8 +548,9 @@ body{
 
 
                 <a
-                href="lost_found.php"
-                class="back-btn">
+                    href="lost_found.php"
+                    class="back-btn"
+                >
 
                     ← Back to Lost & Found
 
@@ -424,6 +564,7 @@ body{
     </div>
 
 </div>
+
 
 </body>
 
